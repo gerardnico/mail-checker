@@ -1,0 +1,7 @@
+version: '3'
+
+tasks:
+  run:
+    cmds:
+      # compile and run
+      - go run main.go --config examples/conf.yml
