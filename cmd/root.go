@@ -5,6 +5,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/go-playground/validator/v10"
 	"github.com/mileusna/spf"
 	"log"
 	"net"
@@ -14,7 +15,14 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Configuration struct {
+	Resolver string   `yaml:"resolver" validate:"required,ipv4"`
+	Mailers  []string `yaml:"mailers" validate:"required,dive,ipv4"`
+	Domains  []string `yaml:"domains" validate:"required,dive,hostname"`
+}
+
 var cfgFile string
+var config Configuration
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -22,17 +30,27 @@ var rootCmd = &cobra.Command{
 	Short: "Check a mail installation",
 	Long:  `Check Spf, Dkim`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		// Set DNS server which will be used by resolver.
 		// Default is Google's 8.8.8.8:53
-		cloudflare := "1.1.1.1:53"
-		spf.DNSServer = cloudflare
+		spf.DNSServer = config.Resolver + ":53"
 
-		ipString := "188.245.43.250"
-		ip := net.ParseIP(ipString)
-		domain := "bytle.net"
-		r := spf.CheckHost(ip, domain, "nico@"+domain, "")
+		_, _ = fmt.Fprintln(os.Stderr, "Spf Check:")
+		for _, mailer := range config.Mailers {
+			ip := net.ParseIP(mailer)
+			for _, domain := range config.Domains {
+				r := spf.CheckHost(ip, domain, "foo@"+domain, "")
 
-		fmt.Printf("Result is, %s!\n", r)
+				format := "  * For domain %s, mailer %s, result is, %s!\n"
+				if r != "PASS" {
+					log.Fatalf(format, domain, mailer, r)
+				}
+
+				_, _ = fmt.Fprintf(os.Stderr, format, domain, mailer, r)
+
+			}
+		}
+
 	},
 }
 
@@ -78,6 +96,14 @@ func initConfig() {
 			log.Fatal("Config file not found")
 		}
 		log.Fatalf("Error reading config file: %v", err)
+	}
+
+	if err := viper.Unmarshal(&config); err != nil {
+		log.Fatalf("Unable to unmarshall the config %v", err)
+	}
+	validate := validator.New()
+	if err := validate.Struct(&config); err != nil {
+		log.Fatalf("Error validating the config file: %v\n", err)
 	}
 
 }
