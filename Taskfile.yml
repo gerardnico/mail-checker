@@ -5,3 +5,6 @@ tasks:
     cmds:
       # compile and run
       - go run main.go --config examples/conf.yml
+  build:
+    cmds:
+      - nix-build -A mail-checker
