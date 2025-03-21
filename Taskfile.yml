@@ -38,10 +38,14 @@ tasks:
       # Builds and pushes a container image, and prints the resulting image digest to stdout.
       # The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
       # This way we don't get the md5 in the repo
+      # Local send the image to the docker daemon
       - |
         ko build . \
-          --image-label org.opencontainers.image.source=https://github.com/gerardnico/mail-checker
+          --image-label org.opencontainers.image.source=https://github.com/gerardnico/mail-checker \
           --image-label org.opencontainers.image.description=MailChecker \
+          --image-label org.opencontainers.image.authors=Nico \
+          --image-label org.opencontainers.image.url=https://github.com/gerardnico/mail-checker \
           --bare \
-          --tags v0.1.0
+          --tags v0.1.0 \
+          --local
         
