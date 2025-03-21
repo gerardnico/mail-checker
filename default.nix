@@ -15,12 +15,14 @@ assert pkgs.lib.versionAtLeast pkgs.git.version gitMinVersion || throw "Git vers
 # Returned object
 {
 
-  # create a build property
+  # Create a mail-checker
+  # that you can run with nix-build -A mail-checker
   inherit mail-checker;
   # Create a shell function (used in shell.nix)
   shell = pkgs.mkShellNoCC {
       packages = with pkgs; [
         git
+        goreleaser
       ];
       # Take the package’s dependencies into the environment with inputsFrom
       inputsFrom = [ mail-checker ];

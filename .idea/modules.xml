@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/mail-checker.iml" filepath="$PROJECT_DIR$/mail-checker.iml" />
+      <module fileurl="file://$PROJECT_DIR$/github.com/gerardnico/mail-checker.iml" filepath="$PROJECT_DIR$/github.com/gerardnico/mail-checker.iml" />
     </modules>
   </component>
 </project>

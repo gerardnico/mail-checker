@@ -9,4 +9,5 @@ Go Sdk Nix with is at:
 
 ## Nix
 
-We use Nix to set the needed tools.
+We use Nix to install and pin the dev/build tools to a version.
+

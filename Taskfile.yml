@@ -12,3 +12,20 @@ tasks:
       # to get the hash with vendorHash = null
       - go mod vendor
       - nix-build -A mail-checker
+  # Create the binary in the current directory
+  build:
+    cmds:
+      - go build
+  # Create the binary and add it to the bin in GOPATH/bin
+  install:
+    cmds:
+      - go install
+  # Run a local release
+  local-release:
+    cmds:
+      # --snapshot: Without publishing based on the latest commit
+      - goreleaser release --snapshot --clean
+  # Release
+  release:
+    cmds:
+      - goreleaser release
