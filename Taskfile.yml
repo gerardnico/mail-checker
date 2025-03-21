@@ -5,6 +5,10 @@ tasks:
     cmds:
       # compile and run
       - go run main.go --config examples/conf.yml
-  build:
+  # Experimental
+  nix-build:
     cmds:
+      # https://nixos.org/manual/nixpkgs/stable/#buildgomodule-parameters
+      # to get the hash with vendorHash = null
+      - go mod vendor
       - nix-build -A mail-checker
