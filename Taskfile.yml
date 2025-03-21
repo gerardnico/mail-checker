@@ -21,11 +21,27 @@ tasks:
     cmds:
       - go install
   # Run a local release
-  local-release:
+  gor-local:
     cmds:
       # --snapshot: Without publishing based on the latest commit
       - goreleaser release --snapshot --clean
   # Release
-  release:
+  gor-release:
     cmds:
       - goreleaser release
+  release:
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o dist/linux_arm64/mail-checker
+
+  ko-build:
+    cmds:
+      # Builds and pushes a container image, and prints the resulting image digest to stdout.
+      # The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
+      # This way we don't get the md5 in the repo
+      - |
+        ko build . \
+          --image-label org.opencontainers.image.source=https://github.com/gerardnico/mail-checker
+          --image-label org.opencontainers.image.description=MailChecker \
+          --bare \
+          --tags v0.1.0
+        
