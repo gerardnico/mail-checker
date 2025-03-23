@@ -11,3 +11,9 @@ Go Sdk Nix with is at:
 
 We use Nix to install and pin the dev/build tools to a version.
 
+
+## Github
+
+Repo set 
+* in [](../.envrc) for `git cliff`
+* in [jreleaser](../jreleaser.yml)

@@ -20,15 +20,7 @@ tasks:
   install:
     cmds:
       - go install
-  # Run a local release
-  gor-local:
-    cmds:
-      # --snapshot: Without publishing based on the latest commit
-      - goreleaser release --snapshot --clean
-  # Release
-  gor-release:
-    cmds:
-      - goreleaser release
+
   release:
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o dist/linux_arm64/mail-checker
