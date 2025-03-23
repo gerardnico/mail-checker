@@ -32,5 +32,9 @@ result
 mail-checker
 
 
-
 dist/
+
+# Jreleaser
+out
+target
+trace.log

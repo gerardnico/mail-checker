@@ -1,0 +1,64 @@
+
+matrix:
+  rows:
+    - { goos: linux,   goarch: arm64, platform: linux-aarch_64   }
+#    - { goos: darwin,  goarch: arm64, platform: osx-aarch_64     }
+#    - { goos: darwin,  goarch: amd64, platform: osx-x86_64       }
+#    - { goos: linux,   goarch: amd64, platform: linux-x86_64     }
+#    - { goos: windows, goarch: arm64, platform: windows-aarch_64 }
+#    - { goos: windows, goarch: amd64, platform: windows-x86_64   }
+
+hooks:
+  script:
+    before:
+      - run: |
+          echo "building ${GOOS}-${GOARCH}"
+          go build -o target/${GOOS}-${GOARCH}/ main.go
+        applyDefaultMatrix: true
+        verbose: true
+        environment:
+          GOOS: '{{ matrix.goos }}'
+          GOARCH: '{{ matrix.goarch }}'
+        filter:
+          includes: ['assemble']
+
+project:
+  name: mail-checker
+  version: 1.0.0-SNAPSHOT
+  description: Mail Checker
+  longDescription: Mail Checker
+  authors:
+    - Nico
+  license: MIT
+  links:
+    homepage: https://github.com/gerardnico/mail-checker
+  inceptionYear: '2025'
+  stereotype: CLI
+
+release:
+  github:
+    overwrite: true
+    changelog:
+      formatted: ALWAYS
+      preset: conventional-commits
+      contributors:
+        format: '- {{contributorName}}{{#contributorUsernameAsLink}} ({{.}}){{/contributorUsernameAsLink}}'
+
+distributions:
+  mail-checker:
+    executable:
+      windowsExtension: exe
+
+assemble:
+  archive:
+    mail-checker:
+      active: ALWAYS
+      formats: [ ZIP ]
+      applyDefaultMatrix: true
+      archiveName: '{{distributionName}}-{{projectVersion}}-{{ matrix.goos }}-{{ matrix.goarch }}'
+      fileSets:
+        - input: 'target/{{ matrix.goos }}-{{ matrix.goarch }}'
+          output: 'bin'
+          includes: [ 'mail-checker{.exe,}' ]
+        - input: '.'
+          includes: [ 'LICENSE' ]
