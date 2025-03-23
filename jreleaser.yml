@@ -1,30 +1,41 @@
+# Go Configuration
+# https://jreleaser.org/guide/latest/examples/miscellaneous/go.html
+
+
+environment:
+  properties:
+    # The base output of the gobuild dir
+    go_build_dir: 'out/go'
 
 matrix:
   rows:
-    - { goos: linux,   goarch: arm64, platform: linux-aarch_64   }
+    - { goos: linux,   goarch: amd64, platform: linux-x86_64     }
+    - { goos: windows, goarch: amd64, platform: windows-x86_64   }
+    - { goos: darwin,  goarch: amd64, platform: osx-x86_64       }
+#    - { goos: linux,   goarch: arm64, platform: linux-aarch_64   }
 #    - { goos: darwin,  goarch: arm64, platform: osx-aarch_64     }
-#    - { goos: darwin,  goarch: amd64, platform: osx-x86_64       }
-#    - { goos: linux,   goarch: amd64, platform: linux-x86_64     }
 #    - { goos: windows, goarch: arm64, platform: windows-aarch_64 }
-#    - { goos: windows, goarch: amd64, platform: windows-x86_64   }
 
 hooks:
   script:
     before:
       - run: |
           echo "building ${GOOS}-${GOARCH}"
-          go build -o target/${GOOS}-${GOARCH}/ main.go
+          go build -o ${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${BINARY_NAME} main.go
         applyDefaultMatrix: true
         verbose: true
         environment:
           GOOS: '{{ matrix.goos }}'
           GOARCH: '{{ matrix.goarch }}'
+          GO_BUILD_DIR: '{{ go_build_dir }}'
+          BINARY_NAME: '{{ project.name }}'
         filter:
           includes: ['assemble']
 
 project:
   name: mail-checker
-  version: 1.0.0-SNAPSHOT
+  # JRELEASER_PROJECT_VERSION
+  # version: 1.0.0-SNAPSHOT
   description: Mail Checker
   longDescription: Mail Checker
   authors:
@@ -49,7 +60,10 @@ distributions:
     executable:
       windowsExtension: exe
 
+# Execute with jreleaser assemble
 assemble:
+  # Creates a binary distribution archive
+  # https://jreleaser.org/guide/latest/reference/assemble/archive.html
   archive:
     mail-checker:
       active: ALWAYS
@@ -57,8 +71,8 @@ assemble:
       applyDefaultMatrix: true
       archiveName: '{{distributionName}}-{{projectVersion}}-{{ matrix.goos }}-{{ matrix.goarch }}'
       fileSets:
-        - input: 'target/{{ matrix.goos }}-{{ matrix.goarch }}'
+        - input: '{{ go_build_dir }}/{{ matrix.goos }}-{{ matrix.goarch }}'
           output: 'bin'
-          includes: [ 'mail-checker{.exe,}' ]
+          includes: [ '{{project.name}}{.exe,}' ]
         - input: '.'
           includes: [ 'LICENSE' ]

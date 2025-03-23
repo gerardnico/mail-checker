@@ -13,9 +13,9 @@ tasks:
       - go mod vendor
       - nix-build -A mail-checker
   # Create the binary in the current directory
-  build:
+  assemble:
     cmds:
-      - go build
+      - jreleaser assemble
   # Create the binary and add it to the bin in GOPATH/bin
   install:
     cmds:
