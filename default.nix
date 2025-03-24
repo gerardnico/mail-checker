@@ -5,12 +5,13 @@ let
   # <nixpkgs> refers to NIX_PATH
   # export NIX_PATH="nixpkgs=channel:nixos-24.11"
   pkgs = import <nixpkgs> { config = {}; overlays = []; };
-  # https://semantic-release.gitbook.io/semantic-release/support/git-version
-  gitMinVersion = "2.7.1";
+  # 2.7.1 for semantic release https://semantic-release.gitbook.io/semantic-release/support/git-version
+  # 2.9.0 for hooks https://stackoverflow.com/questions/39332407/git-hooks-applying-git-config-core-hookspath
+  gitMinVersion = "2.9.0";
   mail-checker = pkgs.callPackage ./build.nix { go = pkgs.go_1_23; };
 in
 
-assert pkgs.lib.versionAtLeast pkgs.git.version gitMinVersion || throw "Git version ${pkgs.git.version} is less than required minimum ${gitMinVersion} for semantic release";
+assert pkgs.lib.versionAtLeast pkgs.git.version gitMinVersion || throw "Git version ${pkgs.git.version} is less than required minimum ${gitMinVersion} for git hooks";
 
 # Returned object
 {
