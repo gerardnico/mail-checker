@@ -76,7 +76,8 @@ packagers:
   # Template used:  https://github.com/jreleaser/jreleaser/blob/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
   docker:
     # Does not work: https://github.com/jreleaser/jreleaser/discussions/1834
-    active: ALWAYS
+    # We use ko for now
+    active: NEVER
     templateDirectory: .jreleaser/docker
     repository:
       # ie mail-checker in ghcr.io/gerardnico/mail-checker

@@ -25,13 +25,14 @@ tasks:
           export JRELEASER_PROJECT_VERSION=$(git cliff --bumped-version);
         fi
         
-        # Create the bin
+        # Build the bin and archive
         jreleaser assemble
         
-        # Create
+        # Create the release (in github)
         jreleaser release
         
         # Docker
+        # https://github.com/jreleaser/jreleaser/discussions/1834
         if [ "${DOCKER_PACKAGER}" == "ko" ]; then 
           # Builds and pushes a container image, and prints the resulting image digest to stdout.
           # The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
