@@ -12,7 +12,7 @@ LABEL {{.}}
 {{.}}
 {{/dockerPreCommands}}
 
-# / at then means, bin should be a directory
+# / at the end means, that `bin` is a directory, not a file
 COPY --chmod=0777 assembly/bin/{{distributionExecutableUnix}} /bin/
 
 # dockerBaseImage is scratch and has no sh shell
@@ -25,4 +25,4 @@ COPY --chmod=0777 assembly/bin/{{distributionExecutableUnix}} /bin/
 
 ENV PATH="${PATH}:/bin"
 
-ENTRYPOINT ["{{distributionExecutableUnix}}"]
+ENTRYPOINT ["/bin/{{distributionExecutableUnix}}"]

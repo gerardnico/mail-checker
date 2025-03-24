@@ -57,42 +57,13 @@ project:
 release:
   # https://jreleaser.org/guide/latest/reference/release/github.html
   github:
-    # overwrite: true
+    overwrite: true
     skipTag: true # do not create a git tag
     changelog:
       formatted: ALWAYS
       preset: conventional-commits
       contributors:
         format: '- {{contributorName}}{{#contributorUsernameAsLink}} ({{.}}){{/contributorUsernameAsLink}}'
-
-distributions:
-  mail-checker:
-    executable:
-      windowsExtension: exe
-    # jreleaser package --dry-run to create the image
-    # jreleaser publish to push the image
-    # https://jreleaser.org/guide/latest/reference/packagers/docker.html
-    # Template used:  https://github.com/jreleaser/jreleaser/blob/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
-    docker:
-      # Does not work: https://github.com/jreleaser/jreleaser/discussions/1834
-      # We use ko for now
-      active: NEVER
-      templateDirectory: .jreleaser/docker
-      # Man, this is where the generated dockerfile are stored
-      repository:
-        active: NEVER
-      registries:
-        - serverName: ghcr.io
-      labels:
-        org.opencontainers.image.title: 'mail-checker'
-      specs:
-        linux-amd:
-          imageNames:
-            - 'gerardnico/mail-checker:{{tagName}}'
-          # match by platform
-          matchers:
-            platform: 'linux-x86_64'
-
 
 # Execute with jreleaser assemble
 assemble:
@@ -102,7 +73,6 @@ assemble:
     mail-checker:
       active: ALWAYS
       formats: [ ZIP ]
-      exported: true
       applyDefaultMatrix: true
       archiveName: '{{distributionName}}-{{projectVersion}}-{{ matrix.goos }}-{{ matrix.goarch }}'
       fileSets:
@@ -111,3 +81,36 @@ assemble:
           includes: [ '{{ projectName }}{.exe,}' ]
         - input: '.'
           includes: [ 'LICENSE' ]
+
+distributions:
+  # This is the distributionExecutableUnix by default
+  mail-checker:
+    executable:
+      # This is the distributionExecutableUnix by default
+      #name: mail-checker
+      windowsExtension: exe
+    # jreleaser package --dry-run to create the image
+    # jreleaser publish to push the image
+    # https://jreleaser.org/guide/latest/reference/packagers/docker.html
+    # Template used:  https://github.com/jreleaser/jreleaser/blob/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
+    docker:
+      # Does not work: https://github.com/jreleaser/jreleaser/discussions/1834
+      # We use ko for now
+      active: ALWAYS
+      templateDirectory: .jreleaser/docker
+      # Man, this is where the generated dockerfile and assembly are stored
+      repository:
+        active: NEVER # on by default
+      registries:
+        - serverName: ghcr.io
+      #labels:
+      #  org.opencontainers.image.title: 'mail-checker'
+#      specs:
+#        linux-amd:
+#          imageNames:
+#            - 'gerardnico/mail-checker:{{tagName}}'
+#          # match by platform
+#          matchers:
+#            platform: 'linux-x86_64'
+
+

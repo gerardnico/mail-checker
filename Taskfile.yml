@@ -25,11 +25,23 @@ tasks:
           export JRELEASER_PROJECT_VERSION=$(git cliff --bumped-version);
         fi
         
+        # Clean
+        rm -rf out
+        
         # Build the bin and archive
         jreleaser assemble
         
         # Create the release (in github)
         jreleaser release
+        
+        # Create the docker image
+        #    We delete the docker images to not push more than one
+        #    https://github.com/jreleaser/jreleaser/discussions/1834
+        docker rmi -f $(docker images -q ghcr.io/gerardnico/mail-checker) 
+        jreleaser package
+        
+        # Push to github
+        jreleaser publish
         
         # Docker
         # https://github.com/jreleaser/jreleaser/discussions/1834
