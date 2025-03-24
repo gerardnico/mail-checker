@@ -1,4 +1,4 @@
-# Generated with JReleaser 1.17.0 at 2025-03-24T18:49:50.917111519+01:00
+# Generated with JReleaser 1.17.0 at 2025-03-24T18:51:11.852579039+01:00
 # Based on https://raw.githubusercontent.com/jreleaser/jreleaser/refs/tags/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
 # to resolve https://github.com/jreleaser/jreleaser/discussions/1834
 # dockerBaseImage is https://hub.docker.com/_/scratch
