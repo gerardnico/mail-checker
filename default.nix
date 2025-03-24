@@ -26,22 +26,26 @@ assert pkgs.lib.versionAtLeast pkgs.git.version gitMinVersion || throw "Git vers
         nodejs
         nodePackages."@commitlint/cli"
         nodePackages."@commitlint/config-conventional"
+        jreleaser-cli
       ];
       # Take the package’s dependencies into the environment with inputsFrom
       inputsFrom = [ mail-checker ];
       shellHook = ''
           echo "Hallo from Nix"
 
-          echo "Git Version : $(git --version)"
+          echo "Git Version        : $(git --version)"
 
-          echo "Go Version : $(go version)"
+          echo "Go Version         : $(go version)"
+
+          echo "JReleaser version  : $(jreleaser --version | grep jreleaser | cut -d ' ' -f '2-')"
+
+          echo "CommitLint version : $(commitlint -version)"
 
           # Node for commitlint
           export NODE_BIN="${pkgs.nodejs}/bin/node"
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "NPX version: $(npx --version)"
-          echo "CommitLint version: $(commitlint -version)"
+          #echo "Node version: $(node --version)"
+          #echo "NPM version: $(npm --version)"
+          #echo "NPX version: $(npx --version)"
 
           #mkdir -p $out/bin
           #export COREPACK_ENABLE_DOWNLOAD_PROMPT=0 && corepack enable --install-directory=$out/bin

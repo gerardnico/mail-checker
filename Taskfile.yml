@@ -13,31 +13,52 @@ tasks:
       - go mod vendor
       - nix-build -A mail-checker
   # Create the binary in the current directory
-  assemble:
+  jr-assemble:
     cmds:
       - jreleaser assemble
+  release:
+    cmds:
+      - |
+        
+        if [ "${JRELEASER_PROJECT_VERSION:-}" == "" ]; then
+          # if there is no commit added, the last version comes back
+          export JRELEASER_PROJECT_VERSION=$(git cliff --bumped-version);
+        fi
+        
+        # Create the bin
+        jreleaser assemble
+        
+        # Create
+        jreleaser release
+        
+        # Docker
+        if [ "${DOCKER_PACKAGER}" == "ko" ]; then 
+          # Builds and pushes a container image, and prints the resulting image digest to stdout.
+          # The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
+          # This way we don't get the md5 in the repo
+          # Local send the image to the docker daemon
+          KO_DOCKER_REPO=ghcr.io/gerardnico/mail-checker
+          ko build . \
+              --image-label org.opencontainers.image.source=https://github.com/gerardnico/mail-checker \
+              --image-label org.opencontainers.image.description=MailChecker \
+              --image-label org.opencontainers.image.title=MailChecker \
+              --image-label org.opencontainers.image.authors=Nico \
+              --image-label org.opencontainers.image.url=https://github.com/gerardnico/mail-checker \
+              --image-label org.opencontainers.image.licenses=MIT \
+              --image-label org.opencontainers.image.version=$JRELEASER_PROJECT_VERSION \
+              --bare \
+              --tags v"$JRELEASER_PROJECT_VERSION"
+        fi
+
   # Create the binary and add it to the bin in GOPATH/bin
-  install:
+  go-install:
     cmds:
       - go install
 
-  release:
+  go-build:
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH="arm64" go build -o dist/linux_arm64/mail-checker
 
-  ko-build:
-    cmds:
-      # Builds and pushes a container image, and prints the resulting image digest to stdout.
-      # The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
-      # This way we don't get the md5 in the repo
-      # Local send the image to the docker daemon
-      - |
-        ko build . \
-          --image-label org.opencontainers.image.source=https://github.com/gerardnico/mail-checker \
-          --image-label org.opencontainers.image.description=MailChecker \
-          --image-label org.opencontainers.image.authors=Nico \
-          --image-label org.opencontainers.image.url=https://github.com/gerardnico/mail-checker \
-          --bare \
-          --tags v0.1.0 \
-          --local
+
+
         

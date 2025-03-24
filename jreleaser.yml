@@ -9,9 +9,9 @@ environment:
 
 matrix:
   rows:
-    - { goos: linux,   goarch: amd64, platform: linux-x86_64     }
-    - { goos: windows, goarch: amd64, platform: windows-x86_64   }
-    - { goos: darwin,  goarch: amd64, platform: osx-x86_64       }
+    - { goos: linux,   goarch: amd64, platform: linux-x86_64 }
+    - { goos: windows, goarch: amd64, platform: windows-x86_64 }
+    - { goos: darwin,  goarch: amd64, platform: osx-x86_64 }
 #    - { goos: linux,   goarch: arm64, platform: linux-aarch_64   }
 #    - { goos: darwin,  goarch: arm64, platform: osx-aarch_64     }
 #    - { goos: windows, goarch: arm64, platform: windows-aarch_64 }
@@ -20,17 +20,25 @@ hooks:
   script:
     before:
       - run: |
-          echo "building ${GOOS}-${GOARCH}"
-          go build -o ${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${BINARY_NAME} main.go
+          echo "building ${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${PROJECT_NAME}"
+          OUTPUT="${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${PROJECT_NAME}"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT="${OUTPUT}.exe"
+          fi
+          # CGO_ENABLED=0 does not allow to add any dynamic library 
+          # To resolve `no such file or directory error` in a docker container
+          # https://stackoverflow.com/questions/55106186/no-such-file-or-directory-with-docker-scratch-image
+          CGO_ENABLED=0 go build -o "$OUTPUT"  main.go
         applyDefaultMatrix: true
         verbose: true
         environment:
           GOOS: '{{ matrix.goos }}'
           GOARCH: '{{ matrix.goarch }}'
           GO_BUILD_DIR: '{{ go_build_dir }}'
-          BINARY_NAME: '{{ project.name }}'
+          # projectName as seen here https://jreleaser.org/guide/latest/reference/name-templates.html#_project
+          PROJECT_NAME: '{{ projectName }}'
         filter:
-          includes: ['assemble']
+          includes: [ 'assemble' ]
 
 project:
   name: mail-checker
@@ -47,6 +55,7 @@ project:
   stereotype: CLI
 
 release:
+  # https://jreleaser.org/guide/latest/reference/release/github.html
   github:
     overwrite: true
     changelog:
@@ -60,6 +69,28 @@ distributions:
     executable:
       windowsExtension: exe
 
+packagers:
+  # jreleaser package --dry-run to create the image
+  # jreleaser publish to push the image
+  # https://jreleaser.org/guide/latest/reference/packagers/docker.html
+  # Template used:  https://github.com/jreleaser/jreleaser/blob/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
+  docker:
+    # Does not work: https://github.com/jreleaser/jreleaser/discussions/1834
+    active: ALWAYS
+    templateDirectory: .jreleaser/docker
+    repository:
+      # ie mail-checker in ghcr.io/gerardnico/mail-checker
+      # otherwise you get ghcr.io/gerardnico/mail-checker-docker (ie app-docker)
+      name: mail-checker
+    registries:
+      - serverName: ghcr.io
+    labels:
+      org.opencontainers.image.title: 'mail-checker'
+    buildx:
+      platforms:
+        - 'linux-x86_64'
+
+
 # Execute with jreleaser assemble
 assemble:
   # Creates a binary distribution archive
@@ -68,11 +99,12 @@ assemble:
     mail-checker:
       active: ALWAYS
       formats: [ ZIP ]
+      exported: true
       applyDefaultMatrix: true
       archiveName: '{{distributionName}}-{{projectVersion}}-{{ matrix.goos }}-{{ matrix.goarch }}'
       fileSets:
         - input: '{{ go_build_dir }}/{{ matrix.goos }}-{{ matrix.goarch }}'
           output: 'bin'
-          includes: [ '{{project.name}}{.exe,}' ]
+          includes: [ '{{ projectName }}{.exe,}' ]
         - input: '.'
           includes: [ 'LICENSE' ]
