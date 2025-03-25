@@ -3,4 +3,4 @@
 # Lint the commit message
 
 echo "CommitLint check" >/dev/stderr
-commitlint --verbose --edit  "$1"
+commitlint --extends '@commitlint/config-conventional' --verbose --edit  "$1"
