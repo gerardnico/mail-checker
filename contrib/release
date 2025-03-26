@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+set -TCEeuo pipefail
+
+# Version is in the envrc as it's mandatory
+# for all Jreleaser commands
+
+TYPE_RELEASE="local"
+if [ "${1:-}" == "--remote" ]; then
+  TYPE_RELEASE="remote"
+fi
+
+# Clean
+rm -rf out
+
+# Create the release (in github)
+if [ "$TYPE_RELEASE" == "remote" ]; then
+  jreleaser release
+else
+  task changelog
+  echo ""
+fi
+
+# To get any error
+METADATA="$(yq --exit-status -r \
+  '.project.description + "," + .project.name + "," + .project.links.homepage + "," + .project.license + "," + (.project.authors | join(","))' \
+  jreleaser.yml
+  )";
+
+# Extract Meta
+IFS=, read -r IMAGE_DESCRIPTION IMAGE_TITLE IMAGE_URL IMAGE_LICENCE IMAGE_AUTHORS <<< "$METADATA"
+
+# Docker
+# Local send the image to the docker daemon
+if [ "$TYPE_RELEASE" == "remote" ]; then
+  export KO_DOCKER_REPO=ghcr.io/${GIT_REPO}
+else
+  # Local Docker
+  # https://ko.build/configuration/#local-publishing-options
+  export KO_DOCKER_REPO=ko.local
+fi
+
+# Builds and prints the resulting image digest to stdout.
+# The option --bare omit the md5 and path in the image naming, see https://ko.build/configuration/#naming-images
+# This way we don't get the md5 in the repo
+ko build . \
+    --image-label org.opencontainers.image.source="$IMAGE_URL" \
+    --image-label org.opencontainers.image.description="$IMAGE_DESCRIPTION" \
+    --image-label org.opencontainers.image.title="$IMAGE_TITLE" \
+    --image-label org.opencontainers.image.authors="$IMAGE_AUTHORS" \
+    --image-label org.opencontainers.image.url="$IMAGE_URL" \
+    --image-label org.opencontainers.image.licenses="$IMAGE_LICENCE" \
+    --image-label org.opencontainers.image.version="$JRELEASER_PROJECT_VERSION" \
+    --bare \
+    --tags v"$JRELEASER_PROJECT_VERSION"

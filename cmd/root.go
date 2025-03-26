@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/mileusna/spf"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"log"
 	"net"
 	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 type Configuration struct {
@@ -20,6 +19,9 @@ type Configuration struct {
 	Mailers  []string `yaml:"mailers" validate:"required,dive,ipv4"`
 	Domains  []string `yaml:"domains" validate:"required,dive,hostname"`
 }
+
+// Version The version
+var Version = "set-with-x-flags" // set at compile time with x flags
 
 var cfgFile string
 var config Configuration
@@ -29,7 +31,7 @@ var rootCmd = &cobra.Command{
 	Use:     "mail-checker",
 	Short:   "Check a mail installation",
 	Long:    `Check Spf, Dkim`,
-	Version: "snapshot", // replaced at release time
+	Version: Version,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		// Set DNS server which will be used by resolver.
@@ -71,7 +73,7 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.mail-checker.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -83,6 +85,7 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+
 	if cfgFile == "" {
 		log.Fatal("The config is mandatory")
 	}

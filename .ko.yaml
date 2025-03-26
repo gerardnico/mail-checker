@@ -1,0 +1,7 @@
+# go build arguments
+builds:
+  - id: mail-checker
+    main: mail-checker.go
+    ldflags:
+      # https://ko.build/advanced/faq/#how-can-i-set-ldflags
+      - -X cmd.Version={{.Env.JRELEASER_PROJECT_VERSION}}
