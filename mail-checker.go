@@ -1,6 +1,8 @@
 package main
 
-import "github.com/gerardnico/mail-checker/cmd"
+import (
+	"github.com/gerardnico/mail-checker/pkg/cmd"
+)
 
 func main() {
 	cmd.Execute()

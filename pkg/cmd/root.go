@@ -5,20 +5,22 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"github.com/gerardnico/mail-checker/pkg/report"
 	"github.com/go-playground/validator/v10"
-	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/mileusna/spf"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"log"
 	"net"
 	"os"
+	"strings"
 )
 
 type Configuration struct {
-	Resolver string   `yaml:"resolver" validate:"required,ipv4"`
-	Mailers  []string `yaml:"mailers" validate:"required,dive,ipv4"`
-	Domains  []string `yaml:"domains" validate:"required,dive,hostname"`
+	Resolver    string             `yaml:"resolver" validate:"required,ipv4"`
+	Mailers     []string           `yaml:"mailers" validate:"required,dive,ipv4"`
+	Domains     []string           `yaml:"domains" validate:"required,dive,hostname"`
+	PushGateway report.PushGateway `yaml:"pushgateway"`
 }
 
 // Version The version
@@ -35,54 +37,78 @@ var rootCmd = &cobra.Command{
 	Version: Version,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		metaCheck := report.MetaCheck{
+			Job:      "mail-checker",
+			Instance: "mail-checker",
+		}
+
 		// Set DNS server which will be used by resolver.
 		// Default is Google's 8.8.8.8:53
 		spf.DNSServer = config.Resolver + ":53"
 
-		// A kuberhealthy will fail only if it can't report it
-		// Docs: https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECK_CREATION.md
-		isKhRun := false
-		if os.Getenv("KH_REPORTING_URL") != "" {
-			isKhRun = true
-		}
-
 		// Spf Check
 		_, _ = fmt.Fprintln(os.Stderr, "Spf Check:")
-		var errors []string
 		for _, mailer := range config.Mailers {
 			ip := net.ParseIP(mailer)
 			for _, domain := range config.Domains {
+
+				// Metrics
+				spfCheckMetrics := report.MetricDefinition{
+					Name: "check",
+					Type: report.Gauge,
+					Labels: map[string]string{
+						"domain": domain,
+						"mailer": mailer,
+						"type":   "spf",
+					},
+				}
+				metaCheck.Metrics = append(metaCheck.Metrics, spfCheckMetrics)
+
 				r := spf.CheckHost(ip, domain, "foo@"+domain, "")
 
 				format := "  * For domain %s, mailer %s, result is, %s!\n"
 				result := fmt.Sprintf(format, domain, mailer, r)
 				if r != "PASS" {
-					errors = append(errors, result)
+					metaCheck.Errors = append(metaCheck.Errors, result)
+					spfCheckMetrics.Value = 1
 					continue
 				}
+				spfCheckMetrics.Value = 0
 				_, _ = fmt.Println(result)
 
 			}
 		}
 
-		// Error
-		if len(errors) > 0 {
-			if isKhRun {
-				err := checkclient.ReportFailure(errors)
-				if err != nil {
-					log.Fatal("Unable to report the following errors to kuberhealthy", errors)
-				}
-				os.Exit(0)
-			}
-			log.Fatal(errors)
+		// Pointer to check if the error was reported to a sinc
+		// if error and reported
+		//   exit status zero
+		//  else
+		//   exit status 1
+		isReported := false
+
+		// KuberHealthy
+		if os.Getenv("KH_REPORTING_URL") != "" {
+			report.ToKuberHealthy(metaCheck)
+			isReported = true
 		}
 
-		// Success
-		if isKhRun {
-			err := checkclient.ReportSuccess()
+		// PushGateway
+		pushGatewayUrl := getConfigValue("pushgateway.url", "").(string)
+		if pushGatewayUrl != "" {
+			config.PushGateway.Url = pushGatewayUrl
+			err := report.ToPushgateway(config.PushGateway, metaCheck)
 			if err != nil {
-				log.Fatal("Could not report success")
+				log.Fatal("Unable to report to pushgateway")
 			}
+			isReported = true
+		}
+
+		// Cli run
+		if isReported {
+			return
+		}
+		if len(metaCheck.Errors) > 0 {
+			log.Fatal(metaCheck.Errors)
 		}
 
 	},
@@ -125,10 +151,16 @@ func initConfig() {
 	// Use config file from the flag.
 	viper.SetConfigFile(cfgFile)
 
+	// Env
 	// Read in environment variables that match
+	// Environment variable prefix
+	viper.SetEnvPrefix("MAIL_CHECKER")
+	// Automatically use environment variables that match
 	viper.AutomaticEnv()
+	// Replace dots with underscores in env var names
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Read it in.
+	// Config file
 	_, _ = fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
 	if err := viper.ReadInConfig(); err != nil {
 		if errors.Is(err, viper.ConfigFileNotFoundError{}) || errors.Is(err, os.ErrNotExist) {
@@ -145,4 +177,21 @@ func initConfig() {
 		log.Fatalf("Error validating the config file: %v\n", err)
 	}
 
+}
+
+// Example function to demonstrate config retrieval
+func getConfigValue(key string, defaultValue interface{}) interface{} {
+	// Priority order:
+	// 1. Command line flag (handled by Cobra/Viper automatically)
+	// 2. Environment variable
+	// 3. Config file
+	// 4. Default value
+
+	// Check if the value is set via flag or env
+	if viper.IsSet(key) {
+		return viper.Get(key)
+	}
+
+	// Return default if no value found
+	return defaultValue
 }

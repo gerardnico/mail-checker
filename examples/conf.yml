@@ -9,3 +9,8 @@ mailers:
 # The domain of the mail servers
 domains:
   - bytle.net
+
+
+pushgateway:
+  # or env MAIL_CHECKER_PUSHGATEWAY_URL
+  url: '' # the url
