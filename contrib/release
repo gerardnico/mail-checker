@@ -21,7 +21,7 @@ else
   echo ""
 fi
 
-# To get any error
+# yq command should not be in a redirect <<<, to stop on any error
 METADATA="$(yq --exit-status -r \
   '.project.description + "," + .project.name + "," + .project.links.homepage + "," + .project.license + "," + (.project.authors | join(","))' \
   jreleaser.yml

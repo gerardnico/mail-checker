@@ -4,7 +4,7 @@ tasks:
   # When developing, compile and run
   run:
     cmds:
-      - go run main.go --config examples/conf.yml
+      - go run mail-checker.go --config examples/conf.yml
   # Release
   release:
     cmds:

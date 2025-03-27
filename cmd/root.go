@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-playground/validator/v10"
+	"github.com/kuberhealthy/kuberhealthy/v2/pkg/checks/external/checkclient"
 	"github.com/mileusna/spf"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,19 +39,49 @@ var rootCmd = &cobra.Command{
 		// Default is Google's 8.8.8.8:53
 		spf.DNSServer = config.Resolver + ":53"
 
+		// A kuberhealthy will fail only if it can't report it
+		// Docs: https://github.com/kuberhealthy/kuberhealthy/blob/master/docs/CHECK_CREATION.md
+		isKhRun := false
+		if os.Getenv("KH_REPORTING_URL") != "" {
+			isKhRun = true
+		}
+
+		// Spf Check
 		_, _ = fmt.Fprintln(os.Stderr, "Spf Check:")
+		var errors []string
 		for _, mailer := range config.Mailers {
 			ip := net.ParseIP(mailer)
 			for _, domain := range config.Domains {
 				r := spf.CheckHost(ip, domain, "foo@"+domain, "")
 
 				format := "  * For domain %s, mailer %s, result is, %s!\n"
+				result := fmt.Sprintf(format, domain, mailer, r)
 				if r != "PASS" {
-					log.Fatalf(format, domain, mailer, r)
+					errors = append(errors, result)
+					continue
 				}
+				_, _ = fmt.Println(result)
 
-				_, _ = fmt.Fprintf(os.Stderr, format, domain, mailer, r)
+			}
+		}
 
+		// Error
+		if len(errors) > 0 {
+			if isKhRun {
+				err := checkclient.ReportFailure(errors)
+				if err != nil {
+					log.Fatal("Unable to report the following errors to kuberhealthy", errors)
+				}
+				os.Exit(0)
+			}
+			log.Fatal(errors)
+		}
+
+		// Success
+		if isKhRun {
+			err := checkclient.ReportSuccess()
+			if err != nil {
+				log.Fatal("Could not report success")
 			}
 		}
 
@@ -87,6 +118,7 @@ func init() {
 func initConfig() {
 
 	if cfgFile == "" {
+		_ = rootCmd.Help()
 		log.Fatal("The config is mandatory")
 	}
 
