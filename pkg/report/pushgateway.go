@@ -1,3 +1,4 @@
+// see example at https://pkg.go.dev/github.com/prometheus/client_golang
 package report
 
 import (
@@ -17,43 +18,33 @@ type PushGateway struct {
 // PushMetrics pushes metrics to Prometheus Pushgateway
 func ToPushgateway(pushgateway PushGateway, opts MetaCheck) error {
 
-	// Create a new registry
-	reg := prometheus.NewRegistry()
+	// The registry will all metrics
+	var reg = prometheus.NewRegistry()
 
-	// Slice to store created metrics
-	var createdMetrics []prometheus.Collector
+	// Collectors (ie CounterVec, GaugeVec, ...) can only be registered/created once
+	// Collectors are vector that gather Metrics data
+	var createdVector = make(map[string]prometheus.Collector)
 
-	// Process and create metrics
+	// Process and add metrics to the vectors
 	for _, metricDef := range opts.Metrics {
-		var metric prometheus.Collector
 
 		switch metricDef.Type {
 		case Counter:
-			metric = prometheus.NewCounterVec(
-				prometheus.CounterOpts{
-					Name: metricDef.Name,
-					Help: fmt.Sprintf("Counter metric for %s", metricDef.Name),
-				},
-				extractLabelKeys(metricDef.Labels),
-			)
-			counterVec := metric.(*prometheus.CounterVec)
-			counterVec.WithLabelValues(extractLabelValues(metricDef.Labels)...).Add(metricDef.Value)
+			counterVec := getOrCreateVector(metricDef, createdVector, reg).(*prometheus.CounterVec)
+			// Add a metric to the vector
+			counterVec.
+				With(metricDef.Labels).
+				Add(metricDef.Value)
 		case Gauge:
-			metric = prometheus.NewGaugeVec(
-				prometheus.GaugeOpts{
-					Name: metricDef.Name,
-					Help: fmt.Sprintf("Gauge metric for %s", metricDef.Name),
-				},
-				extractLabelKeys(metricDef.Labels),
-			)
-			gaugeVec := metric.(*prometheus.GaugeVec)
-			gaugeVec.WithLabelValues(extractLabelValues(metricDef.Labels)...).Set(metricDef.Value)
+			gaugeVec := getOrCreateVector(metricDef, createdVector, reg).(*prometheus.GaugeVec)
+			// Add a metric to the vector
+			gaugeVec.
+				With(metricDef.Labels).
+				Set(metricDef.Value)
 		default:
 			return fmt.Errorf("unsupported metric type: %s", metricDef.Type)
 		}
 
-		reg.MustRegister(metric)
-		createdMetrics = append(createdMetrics, metric)
 	}
 
 	// Create pusher
@@ -102,10 +93,41 @@ func extractLabelKeys(labels map[string]string) []string {
 	return keys
 }
 
-func extractLabelValues(labels map[string]string) []string {
-	values := make([]string, 0, len(labels))
-	for _, v := range labels {
-		values = append(values, v)
+func getOrCreateVector(metricDef MetricDefinition, createdCollector map[string]prometheus.Collector, reg *prometheus.Registry) prometheus.Collector {
+	key := metricDef.Name
+	// Check if the key exists
+	// Could do with reg.Collectors()
+	metric, exists := createdCollector[key]
+	if exists {
+		return metric
 	}
-	return values
+	var collectorVec prometheus.Collector
+	switch metricDef.Type {
+	case Counter:
+		counterOpts := prometheus.CounterOpts{
+			Name: metricDef.Name,
+			Help: fmt.Sprintf("Counter metric for %s", metricDef.Name),
+		}
+		collectorVec = prometheus.NewCounterVec(
+			counterOpts,
+			extractLabelKeys(metricDef.Labels),
+		)
+	case Gauge:
+		gaugeOpts := prometheus.GaugeOpts{
+			Name: metricDef.Name,
+			Help: fmt.Sprintf("Gauge metric for %s", metricDef.Name),
+		}
+		collectorVec = prometheus.NewGaugeVec(
+			gaugeOpts,
+			extractLabelKeys(metricDef.Labels),
+		)
+	default:
+		log.Fatalf("unsupported metric type: %s", metricDef.Type)
+		return nil
+	}
+
+	reg.MustRegister(collectorVec)
+	createdCollector[key] = collectorVec
+	return collectorVec
+
 }

@@ -38,8 +38,7 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		metaCheck := report.MetaCheck{
-			Job:      "mail-checker",
-			Instance: "mail-checker",
+			Job: "mail-checker",
 		}
 
 		// Set DNS server which will be used by resolver.

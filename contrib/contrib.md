@@ -32,3 +32,11 @@ npm install -g @commitlint/cli @commitlint/config-conventional
 Repo set 
 * in [](../.envrc) for `git cliff`
 * in [jreleaser](../jreleaser.yml)
+
+## Test Pushgateway
+
+```bash
+kubee kubectl port-forward -n monitoring svc/pushgateway 9091
+# should work
+echo "test_metric 3.14" | curl --data-binary @- http://127.0.0.1:9091/metrics/job/test
+```

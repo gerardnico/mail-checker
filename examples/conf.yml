@@ -9,8 +9,11 @@ mailers:
 # The domain of the mail servers
 domains:
   - bytle.net
+  - eraldy.com
 
 
 pushgateway:
   # or env MAIL_CHECKER_PUSHGATEWAY_URL
-  url: '' # the url
+  # without metrics
+  # kubee kubectl port-forward -n monitoring svc/pushgateway 9091
+  url: 'http://127.0.0.1:9091' # the url
