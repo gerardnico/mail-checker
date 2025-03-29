@@ -1,6 +1,49 @@
+# Go Configuration
+# https://jreleaser.org/guide/latest/examples/miscellaneous/go.html
+
+
+environment:
+  properties:
+    # The base output of the gobuild dir
+    go_build_dir: 'out/go'
+
+matrix:
+  rows:
+    - { goos: linux,   goarch: amd64, platform: linux-x86_64 }
+    - { goos: windows, goarch: amd64, platform: windows-x86_64 }
+    - { goos: darwin,  goarch: amd64, platform: osx-x86_64 }
+#    - { goos: linux,   goarch: arm64, platform: linux-aarch_64   }
+#    - { goos: darwin,  goarch: arm64, platform: osx-aarch_64     }
+#    - { goos: windows, goarch: arm64, platform: windows-aarch_64 }
+
+hooks:
+  script:
+    before:
+      - run: |
+          echo "building ${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${PROJECT_NAME}"
+          OUTPUT="${GO_BUILD_DIR}/${GOOS}-${GOARCH}/${PROJECT_NAME}"
+          if [ "${GOOS}" == "windows" ]; then
+            OUTPUT="${OUTPUT}.exe"
+          fi
+          # CGO_ENABLED=0 does not allow to add any dynamic library 
+          # To resolve `no such file or directory error` in a docker container
+          # https://stackoverflow.com/questions/55106186/no-such-file-or-directory-with-docker-scratch-image
+          CGO_ENABLED=0 go build -o "$OUTPUT"  main.go
+        applyDefaultMatrix: true
+        verbose: true
+        environment:
+          GOOS: '{{ matrix.goos }}'
+          GOARCH: '{{ matrix.goarch }}'
+          GO_BUILD_DIR: '{{ go_build_dir }}'
+          # projectName as seen here https://jreleaser.org/guide/latest/reference/name-templates.html#_project
+          PROJECT_NAME: '{{ projectName }}'
+        filter:
+          includes: [ 'assemble' ]
 
 project:
   name: mail-checker
+  # JRELEASER_PROJECT_VERSION
+  # version: 1.0.0-SNAPSHOT
   description: Mail Checker
   longDescription: Mail Checker
   authors:
@@ -21,3 +64,53 @@ release:
       preset: conventional-commits
       contributors:
         format: '- {{contributorName}}{{#contributorUsernameAsLink}} ({{.}}){{/contributorUsernameAsLink}}'
+
+# Execute with jreleaser assemble
+assemble:
+  # Creates a binary distribution archive
+  # https://jreleaser.org/guide/latest/reference/assemble/archive.html
+  archive:
+    mail-checker:
+      active: ALWAYS
+      formats: [ ZIP ]
+      applyDefaultMatrix: true
+      archiveName: '{{distributionName}}-{{projectVersion}}-{{ matrix.goos }}-{{ matrix.goarch }}'
+      fileSets:
+        - input: '{{ go_build_dir }}/{{ matrix.goos }}-{{ matrix.goarch }}'
+          output: 'bin'
+          includes: [ '{{ projectName }}{.exe,}' ]
+        - input: '.'
+          includes: [ 'LICENSE' ]
+
+distributions:
+  # This is the distributionExecutableUnix by default
+  mail-checker:
+    executable:
+      # This is the distributionExecutableUnix by default
+      #name: mail-checker
+      windowsExtension: exe
+    # jreleaser package --dry-run to create the image
+    # jreleaser publish to push the image
+    # https://jreleaser.org/guide/latest/reference/packagers/docker.html
+    # Template used:  https://github.com/jreleaser/jreleaser/blob/v1.17.0/core/jreleaser-templates/src/main/resources/META-INF/jreleaser/templates/binary/docker/Dockerfile.tpl
+    docker:
+      # Does not work: https://github.com/jreleaser/jreleaser/discussions/1834
+      # We use ko for now
+      active: ALWAYS
+      templateDirectory: .jreleaser/docker
+      # Man, this is where the generated dockerfile and assembly are stored
+      repository:
+        active: NEVER # on by default
+      registries:
+        - serverName: ghcr.io
+      #labels:
+      #  org.opencontainers.image.title: 'mail-checker'
+#      specs:
+#        linux-amd:
+#          imageNames:
+#            - 'gerardnico/mail-checker:{{tagName}}'
+#          # match by platform
+#          matchers:
+#            platform: 'linux-x86_64'
+
+
