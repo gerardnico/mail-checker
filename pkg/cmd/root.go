@@ -53,7 +53,7 @@ var rootCmd = &cobra.Command{
 
 				// Metrics
 				spfCheckMetrics := report.MetricDefinition{
-					Name: "check",
+					Name: "kubee_check",
 					Type: report.Gauge,
 					Labels: map[string]string{
 						"domain": domain,

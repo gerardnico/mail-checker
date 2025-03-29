@@ -1,8 +1,14 @@
-# Mail Checker
+# Kubee Mail Checker
 
 
-Check the spf config of a mail server.
+`Mail Checker` is a synthetic monitoring test utility, part of the [kubee platform](https://github.com/EraldyHq/kubee)
 
+It checks the `spf` DNS configuration.
+
+It does not support `yet` the following checks:
+* Dkim
+* Reverse Dns
+* Dmarc
 
 ## Example
 
@@ -17,20 +23,25 @@ mail-checker --conf examples/conf.yml
 
 ## Reports
 
-### KuberHealthy
-
-If a [KuberHealthy](https://kuberhealthy.github.io/kuberhealthy/) execution is detected, 
-we report to it.
+`Mail-Checker` can reports the results of the check to the following platforms.
 
 ### PushGateway
 
-If a [Pushgateway Url is configured](examples/conf.yml), we report to it.
+If a [Pushgateway Url is configured](examples/conf.yml), we report to it with the following metrics.
 
-The check metric is named `mail_checker_check` and report a value of:
-* `1` if failed
-* `0` if successful
+The metric created is called `kubee_check` metrics and has the following labels:
+* `type`: type of check. `spf`
+* `domain`: the domain name checked
+* `job`: `mail-checker`
+* `mailer`: the mailer ip
+* `value`:
+    * `0` if successful
+    * `1` if failed
 
-The parameters are set in the prometheus label.
+### KuberHealthy
+
+If a [KuberHealthy](https://kuberhealthy.github.io/kuberhealthy/) execution is detected,
+we report to it.
 
 ## Exit Status
 
